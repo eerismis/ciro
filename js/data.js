@@ -40,7 +40,7 @@ const DataManager = (() => {
    * @param {string} dateKey 'YYYY-MM-DD'
    * @param {Object} entry { revenue, cashAmount, cardAmount, notes, weather }
    */
-  function saveEntry(dateKey, entry) {
+  async function saveEntry(dateKey, entry) {
     const data = getAllData();
     const entryData = {
       revenue: parseFloat(entry.revenue) || 0,
@@ -56,17 +56,22 @@ const DataManager = (() => {
     saveAllData(data);
 
     if (client) {
-      client.from('revenues').upsert({
-        date: dateKey,
-        revenue: entryData.revenue,
-        cashamount: entryData.cashAmount,
-        cardamount: entryData.cardAmount,
-        notes: entryData.notes,
-        weather: entryData.weather,
-        weathericon: entryData.weatherIcon,
-        weathertemp: entryData.weatherTemp,
-        updatedat: entryData.updatedAt
-      }).catch(err => console.error("Supabase saveEntry error:", err));
+      try {
+        const { error } = await client.from('revenues').upsert({
+          date: dateKey,
+          revenue: entryData.revenue,
+          cashamount: entryData.cashAmount,
+          cardamount: entryData.cardAmount,
+          notes: entryData.notes,
+          weather: entryData.weather,
+          weathericon: entryData.weatherIcon,
+          weathertemp: entryData.weatherTemp,
+          updatedat: entryData.updatedAt
+        });
+        if (error) console.error("Supabase saveEntry error:", error);
+      } catch (err) {
+        console.error("Supabase saveEntry exception:", err);
+      }
     }
   }
 
@@ -84,14 +89,18 @@ const DataManager = (() => {
    * Bir güne ait ciro kaydını sil
    * @param {string} dateKey 'YYYY-MM-DD'
    */
-  function deleteEntry(dateKey) {
+  async function deleteEntry(dateKey) {
     const data = getAllData();
     delete data[dateKey];
     saveAllData(data);
 
     if (client) {
-      client.from('revenues').delete().eq('date', dateKey)
-        .catch(err => console.error("Supabase deleteEntry error:", err));
+      try {
+        const { error } = await client.from('revenues').delete().eq('date', dateKey);
+        if (error) console.error("Supabase deleteEntry error:", error);
+      } catch (err) {
+        console.error("Supabase deleteEntry exception:", err);
+      }
     }
   }
 
@@ -174,11 +183,15 @@ const DataManager = (() => {
     }
   }
 
-  function saveTargets(targets) {
+  async function saveTargets(targets) {
     localStorage.setItem(TARGETS_KEY, JSON.stringify(targets));
     if (client) {
-      client.from('key_value_store').upsert({ key: 'targets', value: targets })
-        .catch(err => console.error("Supabase saveTargets error:", err));
+      try {
+        const { error } = await client.from('key_value_store').upsert({ key: 'targets', value: targets });
+        if (error) console.error("Supabase saveTargets error:", error);
+      } catch (err) {
+        console.error("Supabase saveTargets exception:", err);
+      }
     }
   }
 
@@ -195,11 +208,15 @@ const DataManager = (() => {
     }
   }
 
-  function saveSettings(settings) {
+  async function saveSettings(settings) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
     if (client) {
-      client.from('key_value_store').upsert({ key: 'settings', value: settings })
-        .catch(err => console.error("Supabase saveSettings error:", err));
+      try {
+        const { error } = await client.from('key_value_store').upsert({ key: 'settings', value: settings });
+        if (error) console.error("Supabase saveSettings error:", error);
+      } catch (err) {
+        console.error("Supabase saveSettings exception:", err);
+      }
     }
   }
 
