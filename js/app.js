@@ -31,8 +31,8 @@ const App = (() => {
     // Eksik sıcaklık derecelerini otomatik güncelle
     syncMissingWeather();
 
-    // Firebase başlat ve bulut verilerini senkronize et
-    initFirebaseAtLaunch();
+    // Supabase başlat ve bulut verilerini senkronize et
+    initSupabaseAtLaunch();
   }
 
   // ─── Navigation ───
@@ -1267,8 +1267,8 @@ const App = (() => {
       fetchWeather(); // Konum değişmiş olabilir
     });
 
-    // ─── Firebase Eşitleme UI ───
-    setupFirebaseSettings();
+    // ─── Supabase Eşitleme UI ───
+    setupSupabaseSettings();
 
     // ─── GEÇİCİ TABLO YÖNETİMİ (1 Ocak - 27 Nisan) ───
     const tempContainer = document.getElementById('tempBatchContainer');
@@ -1718,13 +1718,13 @@ const App = (() => {
     }, 3000);
   }
 
-  // ─── Firebase Entegrasyonu Yardımcıları ───
-  function initFirebaseAtLaunch() {
-    const config = DataManager.getFirebaseConfig();
+  // ─── Supabase Entegrasyonu Yardımcıları ───
+  function initSupabaseAtLaunch() {
+    const config = DataManager.getSupabaseConfig();
     if (config) {
-      const initialized = DataManager.initFirebase(config);
+      const initialized = DataManager.initSupabase(config);
       if (initialized) {
-        console.log("Firebase initialized successfully at launch");
+        console.log("Supabase initialized successfully at launch");
         // Buluttan en güncel verileri çek ve ekranı yenile
         DataManager.fetchCloudData()
           .then(() => {
@@ -1736,21 +1736,19 @@ const App = (() => {
     }
   }
 
-  function setupFirebaseSettings() {
-    const apiKeyInput = document.getElementById('fbApiKey');
-    const projectIdInput = document.getElementById('fbProjectId');
-    const appIdInput = document.getElementById('fbAppId');
+  function setupSupabaseSettings() {
+    const sbUrlInput = document.getElementById('sbUrl');
+    const sbKeyInput = document.getElementById('sbKey');
     const saveBtn = document.getElementById('btnSaveFirebase');
     const disconnectBtn = document.getElementById('btnDisconnectFirebase');
     const statusMsg = document.getElementById('fbStatusMessage');
 
-    const config = DataManager.getFirebaseConfig();
+    const config = DataManager.getSupabaseConfig();
     if (config) {
-      apiKeyInput.value = config.apiKey || '';
-      projectIdInput.value = config.projectId || '';
-      appIdInput.value = config.appId || '';
+      sbUrlInput.value = config.sbUrl || '';
+      sbKeyInput.value = config.sbKey || '';
       
-      if (DataManager.isFirebaseConnected()) {
+      if (DataManager.isSupabaseConnected()) {
         statusMsg.textContent = '☁️ Bulut Eşitleme Aktif';
         statusMsg.style.color = 'var(--color-success)';
         disconnectBtn.style.display = 'block';
@@ -1763,11 +1761,10 @@ const App = (() => {
     }
 
     saveBtn.addEventListener('click', async () => {
-      const apiKey = apiKeyInput.value.trim();
-      const projectId = projectIdInput.value.trim();
-      const appId = appIdInput.value.trim();
+      const sbUrl = sbUrlInput.value.trim();
+      const sbKey = sbKeyInput.value.trim();
 
-      if (!apiKey || !projectId || !appId) {
+      if (!sbUrl || !sbKey) {
         showToast('Lütfen tüm alanları doldurun', 'warning');
         return;
       }
@@ -1778,8 +1775,8 @@ const App = (() => {
       statusMsg.style.color = 'var(--text-muted)';
 
       try {
-        await DataManager.testAndSyncFirebase({ apiKey, projectId, appId });
-        showToast('Firebase başarıyla bağlandı ve veriler eşitlendi! ✓', 'success');
+        await DataManager.testAndSyncSupabase({ sbUrl, sbKey });
+        showToast('Supabase başarıyla bağlandı ve veriler eşitlendi! ✓', 'success');
         statusMsg.textContent = '☁️ Bulut Eşitleme Aktif';
         statusMsg.style.color = 'var(--color-success)';
         disconnectBtn.style.display = 'block';
@@ -1791,23 +1788,22 @@ const App = (() => {
         statusMsg.style.color = 'var(--color-danger)';
       } finally {
         saveBtn.disabled = false;
-        if (!DataManager.isFirebaseConnected()) {
+        if (!DataManager.isSupabaseConnected()) {
           saveBtn.textContent = '💾 Bağlan & Eşitle';
         }
       }
     });
 
     disconnectBtn.addEventListener('click', () => {
-      if (confirm('Firebase bağlantısını kesmek istediğinize emin misiniz? (Yerel verileriniz silinmez)')) {
-        DataManager.deleteFirebaseConfig();
-        apiKeyInput.value = '';
-        projectIdInput.value = '';
-        appIdInput.value = '';
+      if (confirm('Supabase bağlantısını kesmek istediğinize emin misiniz? (Yerel verileriniz silinmez)')) {
+        DataManager.deleteSupabaseConfig();
+        sbUrlInput.value = '';
+        sbKeyInput.value = '';
         disconnectBtn.style.display = 'none';
         saveBtn.textContent = '💾 Bağlan & Eşitle';
         statusMsg.textContent = 'Bağlantı kesildi';
         statusMsg.style.color = '';
-        showToast('Firebase bağlantısı kesildi', 'info');
+        showToast('Supabase bağlantısı kesildi', 'info');
         refreshCurrentPage();
       }
     });

@@ -5,9 +5,12 @@ const DataManager = (() => {
   const STORAGE_KEY = 'dunyaspot_revenues';
   const TARGETS_KEY = 'dunyaspot_targets';
   const SETTINGS_KEY = 'dunyaspot_settings';
-  const FB_CONFIG_KEY = 'dunyaspot_firebase_config';
+  const SB_CONFIG_KEY = 'dunyaspot_supabase_config';
 
-  let db = null;
+  const DEFAULT_SB_URL = 'https://qfbyroiqxwwaeobzbaji.supabase.co';
+  const DEFAULT_SB_KEY = 'sb_publishable_m-8elKCVbwT_KR4euZ6Y2w_dJwLve9s';
+
+  let client = null;
 
   // ─── Yardımcı Fonksiyonlar ───
   function formatDateKey(date) {
@@ -52,9 +55,18 @@ const DataManager = (() => {
     data[dateKey] = entryData;
     saveAllData(data);
 
-    if (db) {
-      db.collection('revenues').doc(dateKey).set(entryData, { merge: true })
-        .catch(err => console.error("Firestore saveEntry error:", err));
+    if (client) {
+      client.from('revenues').upsert({
+        date: dateKey,
+        revenue: entryData.revenue,
+        cashAmount: entryData.cashAmount,
+        cardAmount: entryData.cardAmount,
+        notes: entryData.notes,
+        weather: entryData.weather,
+        weatherIcon: entryData.weatherIcon,
+        weatherTemp: entryData.weatherTemp,
+        updatedAt: entryData.updatedAt
+      }).catch(err => console.error("Supabase saveEntry error:", err));
     }
   }
 
@@ -77,9 +89,9 @@ const DataManager = (() => {
     delete data[dateKey];
     saveAllData(data);
 
-    if (db) {
-      db.collection('revenues').doc(dateKey).delete()
-        .catch(err => console.error("Firestore deleteEntry error:", err));
+    if (client) {
+      client.from('revenues').delete().eq('date', dateKey)
+        .catch(err => console.error("Supabase deleteEntry error:", err));
     }
   }
 
@@ -164,9 +176,9 @@ const DataManager = (() => {
 
   function saveTargets(targets) {
     localStorage.setItem(TARGETS_KEY, JSON.stringify(targets));
-    if (db) {
-      db.collection('config').doc('targets').set(targets, { merge: true })
-        .catch(err => console.error("Firestore saveTargets error:", err));
+    if (client) {
+      client.from('key_value_store').upsert({ key: 'targets', value: targets })
+        .catch(err => console.error("Supabase saveTargets error:", err));
     }
   }
 
@@ -185,9 +197,9 @@ const DataManager = (() => {
 
   function saveSettings(settings) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    if (db) {
-      db.collection('config').doc('settings').set(settings, { merge: true })
-        .catch(err => console.error("Firestore saveSettings error:", err));
+    if (client) {
+      client.from('key_value_store').upsert({ key: 'settings', value: settings })
+        .catch(err => console.error("Supabase saveSettings error:", err));
     }
   }
 
@@ -325,135 +337,142 @@ const DataManager = (() => {
     URL.revokeObjectURL(url);
   }
 
-  // ─── Firebase Fonksiyonları ───
+  // ─── Supabase Fonksiyonları ───
 
-  function getFirebaseConfig() {
+  function getSupabaseConfig() {
     try {
-      return JSON.parse(localStorage.getItem(FB_CONFIG_KEY)) || null;
-    } catch {
-      return null;
-    }
+      const saved = JSON.parse(localStorage.getItem(SB_CONFIG_KEY));
+      if (saved) return saved;
+    } catch {}
+    return {
+      sbUrl: DEFAULT_SB_URL,
+      sbKey: DEFAULT_SB_KEY
+    };
   }
 
-  function saveFirebaseConfig(config) {
-    localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(config));
+  function saveSupabaseConfig(config) {
+    localStorage.setItem(SB_CONFIG_KEY, JSON.stringify(config));
   }
 
-  function deleteFirebaseConfig() {
-    localStorage.removeItem(FB_CONFIG_KEY);
-    db = null;
+  function deleteSupabaseConfig() {
+    localStorage.removeItem(SB_CONFIG_KEY);
+    client = null;
   }
 
-  function initFirebase(config) {
-    if (!config || !config.apiKey || !config.projectId || !config.appId) {
-      db = null;
+  function initSupabase(config) {
+    if (!config || !config.sbUrl || !config.sbKey) {
+      client = null;
       return false;
     }
     try {
-      if (typeof firebase === 'undefined') {
-        console.error("Firebase SDK scriptleri yüklenmemiş!");
+      if (typeof supabase === 'undefined') {
+        console.error("Supabase SDK scriptleri yüklenmemiş!");
         return false;
       }
-      if (firebase.apps.length === 0) {
-        firebase.initializeApp({
-          apiKey: config.apiKey,
-          authDomain: `${config.projectId}.firebaseapp.com`,
-          projectId: config.projectId,
-          storageBucket: `${config.projectId}.appspot.com`,
-          appId: config.appId
-        });
-      }
-      db = firebase.firestore();
+      client = supabase.createClient(config.sbUrl, config.sbKey);
       return true;
     } catch (e) {
-      console.error("Firebase init hatası:", e);
-      db = null;
+      console.error("Supabase init hatası:", e);
+      client = null;
       return false;
     }
   }
 
-  async function testAndSyncFirebase(config) {
-    const initialized = initFirebase(config);
-    if (!initialized) throw new Error("Firebase başlatılamadı.");
+  async function testAndSyncSupabase(config) {
+    const initialized = initSupabase(config);
+    if (!initialized) throw new Error("Supabase başlatılamadı.");
 
     try {
-      // Test yazması yap
-      await db.collection('test_connection').doc('test').set({ timestamp: new Date().toISOString() });
-      saveFirebaseConfig(config);
+      // Test okuması yap
+      const { data, error } = await client.from('revenues').select('date').limit(1);
+      if (error) throw error;
+
+      saveSupabaseConfig(config);
 
       // Verileri eşitle
       await syncLocalToCloud();
       await fetchCloudData();
       return true;
     } catch (e) {
-      console.error("Firebase test hatası:", e);
-      db = null;
-      throw new Error(e.message);
+      console.error("Supabase test hatası:", e);
+      client = null;
+      throw new Error(e.message || "Veritabanı bağlantı hatası. SQL şemasının Supabase'de çalıştırıldığından emin olun.");
     }
   }
 
   async function syncLocalToCloud() {
-    if (!db) return;
+    if (!client) return;
     
     // 1. Ciroları Yükle
     const localRevenues = getAllData();
-    const batch = db.batch();
-    let batchCount = 0;
-    
+    const rows = [];
     for (const [dateKey, value] of Object.entries(localRevenues)) {
-      const docRef = db.collection('revenues').doc(dateKey);
-      batch.set(docRef, value, { merge: true });
-      batchCount++;
-      if (batchCount >= 400) {
-        await batch.commit();
-        batchCount = 0;
-      }
+      rows.push({
+        date: dateKey,
+        revenue: value.revenue,
+        cashAmount: value.cashAmount,
+        cardAmount: value.cardAmount,
+        notes: value.notes,
+        weather: value.weather,
+        weatherIcon: value.weatherIcon,
+        weatherTemp: value.weatherTemp,
+        updatedAt: value.updatedAt
+      });
     }
-    if (batchCount > 0) {
-      await batch.commit();
+
+    if (rows.length > 0) {
+      const { error } = await client.from('revenues').upsert(rows);
+      if (error) console.error("Supabase sync revenues error:", error);
     }
 
     // 2. Hedefleri Yükle
     const localTargets = getTargets();
-    await db.collection('config').doc('targets').set(localTargets, { merge: true });
+    const { error: tErr } = await client.from('key_value_store').upsert({ key: 'targets', value: localTargets });
+    if (tErr) console.error("Supabase sync targets error:", tErr);
 
     // 3. Ayarları Yükle
     const localSettings = getSettings();
-    await db.collection('config').doc('settings').set(localSettings, { merge: true });
+    const { error: sErr } = await client.from('key_value_store').upsert({ key: 'settings', value: localSettings });
+    if (sErr) console.error("Supabase sync settings error:", sErr);
   }
 
   async function fetchCloudData() {
-    if (!db) return;
+    if (!client) return;
 
-    // 1. Ciroları Çek
-    const querySnapshot = await db.collection('revenues').get();
-    const cloudRevenues = {};
-    querySnapshot.forEach(doc => {
-      cloudRevenues[doc.id] = doc.data();
-    });
+    try {
+      // 1. Ciroları Çek
+      const { data: cloudRevenues, error: revError } = await client.from('revenues').select('*');
+      if (!revError && cloudRevenues) {
+        const localRevenues = getAllData();
+        const mergedRevenues = { ...localRevenues };
+        cloudRevenues.forEach(row => {
+          mergedRevenues[row.date] = {
+            revenue: parseFloat(row.revenue) || 0,
+            cashAmount: parseFloat(row.cashAmount) || 0,
+            cardAmount: parseFloat(row.cardAmount) || 0,
+            notes: row.notes || '',
+            weather: row.weather || '',
+            weatherIcon: row.weatherIcon || '',
+            weatherTemp: row.weatherTemp !== undefined ? row.weatherTemp : null,
+            updatedAt: row.updatedAt || new Date().toISOString()
+          };
+        });
+        saveAllData(mergedRevenues);
+      }
 
-    const localRevenues = getAllData();
-    const mergedRevenues = { ...localRevenues, ...cloudRevenues };
-    saveAllData(mergedRevenues);
+      // 2. Hedefleri Çek
+      const { data: targetData, error: targetError } = await client.from('key_value_store').select('value').eq('key', 'targets').maybeSingle();
+      if (!targetError && targetData && targetData.value) {
+        localStorage.setItem(TARGETS_KEY, JSON.stringify(targetData.value));
+      }
 
-    // 2. Hedefleri Çek
-    const targetsDoc = await db.collection('config').doc('targets').get();
-    if (targetsDoc.exists) {
-      const cloudTargets = targetsDoc.data();
-      const localTargets = getTargets();
-      const mergedTargets = { ...localTargets, ...cloudTargets };
-      // localstorage'a kaydet (db tetiklemesiz yerel kayıt)
-      localStorage.setItem(TARGETS_KEY, JSON.stringify(mergedTargets));
-    }
-
-    // 3. Ayarları Çek
-    const settingsDoc = await db.collection('config').doc('settings').get();
-    if (settingsDoc.exists) {
-      const cloudSettings = settingsDoc.data();
-      const localSettings = getSettings();
-      const mergedSettings = { ...localSettings, ...cloudSettings };
-      // localstorage'a kaydet (db tetiklemesiz yerel kayıt)
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+      // 3. Ayarları Çek
+      const { data: settingsData, error: settingsError } = await client.from('key_value_store').select('value').eq('key', 'settings').maybeSingle();
+      if (!settingsError && settingsData && settingsData.value) {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(settingsData.value));
+      }
+    } catch (err) {
+      console.error("Supabase fetchCloudData error:", err);
     }
   }
 
@@ -476,13 +495,13 @@ const DataManager = (() => {
     importJSON,
     downloadCSV,
     downloadJSON,
-    getFirebaseConfig,
-    saveFirebaseConfig,
-    deleteFirebaseConfig,
-    initFirebase,
-    testAndSyncFirebase,
+    getSupabaseConfig,
+    saveSupabaseConfig,
+    deleteSupabaseConfig,
+    initSupabase,
+    testAndSyncSupabase,
     syncLocalToCloud,
     fetchCloudData,
-    isFirebaseConnected: () => !!db
+    isSupabaseConnected: () => !!client
   };
 })();
