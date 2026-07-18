@@ -260,6 +260,28 @@
               <div class="form-hint" style="text-align:center;">Toplam kayıt: <strong id="totalRecords">0</strong></div>
             </div>
           </div>
+
+          <div class="card" id="cardFirebase">
+            <div class="card-title">☁️ Bulut Eşitleme (Firebase)</div>
+            <div class="form-hint" style="margin-bottom: 12px;">Cihazlar arası otomatik senkronizasyon için Firebase bilgilerinizi girin.</div>
+            <div class="form-group">
+              <label class="form-label" for="fbApiKey">API Key</label>
+              <input type="password" class="form-input" id="fbApiKey" placeholder="AIzaSy...">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="fbProjectId">Project ID</label>
+              <input type="text" class="form-input" id="fbProjectId" placeholder="dunyaspot-ciro">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="fbAppId">App ID</label>
+              <input type="text" class="form-input" id="fbAppId" placeholder="1:123456:web:abcd...">
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 16px;">
+              <button class="btn btn-primary" id="btnSaveFirebase" style="flex: 1;">💾 Bağlan & Eşitle</button>
+              <button class="btn btn-danger" id="btnDisconnectFirebase" style="display: none; flex: 1;">Bağlantıyı Kes</button>
+            </div>
+            <div id="fbStatusMessage" class="form-hint" style="margin-top: 10px; text-align: center; font-weight: 600;"></div>
+          </div>
         </div>
 
         <!-- Geçici Toplu Veri Girişi Tablosu -->
@@ -348,6 +370,10 @@
       </form>
     </div>
   </div>
+
+  <!-- Firebase Compat SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
   <!-- Scripts (order matters) -->
   <script src="js/holidays.js"></script>

@@ -5,6 +5,9 @@ const DataManager = (() => {
   const STORAGE_KEY = 'dunyaspot_revenues';
   const TARGETS_KEY = 'dunyaspot_targets';
   const SETTINGS_KEY = 'dunyaspot_settings';
+  const FB_CONFIG_KEY = 'dunyaspot_firebase_config';
+
+  let db = null;
 
   // ─── Yardımcı Fonksiyonlar ───
   function formatDateKey(date) {
@@ -36,7 +39,7 @@ const DataManager = (() => {
    */
   function saveEntry(dateKey, entry) {
     const data = getAllData();
-    data[dateKey] = {
+    const entryData = {
       revenue: parseFloat(entry.revenue) || 0,
       cashAmount: parseFloat(entry.cashAmount) || 0,
       cardAmount: parseFloat(entry.cardAmount) || 0,
@@ -46,7 +49,13 @@ const DataManager = (() => {
       weatherTemp: entry.weatherTemp !== undefined ? entry.weatherTemp : null,
       updatedAt: new Date().toISOString()
     };
+    data[dateKey] = entryData;
     saveAllData(data);
+
+    if (db) {
+      db.collection('revenues').doc(dateKey).set(entryData, { merge: true })
+        .catch(err => console.error("Firestore saveEntry error:", err));
+    }
   }
 
   /**
@@ -67,6 +76,11 @@ const DataManager = (() => {
     const data = getAllData();
     delete data[dateKey];
     saveAllData(data);
+
+    if (db) {
+      db.collection('revenues').doc(dateKey).delete()
+        .catch(err => console.error("Firestore deleteEntry error:", err));
+    }
   }
 
   /**
@@ -150,6 +164,10 @@ const DataManager = (() => {
 
   function saveTargets(targets) {
     localStorage.setItem(TARGETS_KEY, JSON.stringify(targets));
+    if (db) {
+      db.collection('config').doc('targets').set(targets, { merge: true })
+        .catch(err => console.error("Firestore saveTargets error:", err));
+    }
   }
 
   // ─── Ayarlar ───
@@ -167,6 +185,10 @@ const DataManager = (() => {
 
   function saveSettings(settings) {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+    if (db) {
+      db.collection('config').doc('settings').set(settings, { merge: true })
+        .catch(err => console.error("Firestore saveSettings error:", err));
+    }
   }
 
   // ─── İstatistikler ───
@@ -289,6 +311,9 @@ const DataManager = (() => {
   /**
    * JSON dosyasını indir
    */
+  /**
+   * JSON dosyasını indir
+   */
   function downloadJSON() {
     const json = exportJSON();
     const blob = new Blob([json], { type: 'application/json' });
@@ -298,6 +323,138 @@ const DataManager = (() => {
     a.download = `dunyaspot_yedek_${formatDateKey(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  // ─── Firebase Fonksiyonları ───
+
+  function getFirebaseConfig() {
+    try {
+      return JSON.parse(localStorage.getItem(FB_CONFIG_KEY)) || null;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveFirebaseConfig(config) {
+    localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(config));
+  }
+
+  function deleteFirebaseConfig() {
+    localStorage.removeItem(FB_CONFIG_KEY);
+    db = null;
+  }
+
+  function initFirebase(config) {
+    if (!config || !config.apiKey || !config.projectId || !config.appId) {
+      db = null;
+      return false;
+    }
+    try {
+      if (typeof firebase === 'undefined') {
+        console.error("Firebase SDK scriptleri yüklenmemiş!");
+        return false;
+      }
+      if (firebase.apps.length === 0) {
+        firebase.initializeApp({
+          apiKey: config.apiKey,
+          authDomain: `${config.projectId}.firebaseapp.com`,
+          projectId: config.projectId,
+          storageBucket: `${config.projectId}.appspot.com`,
+          appId: config.appId
+        });
+      }
+      db = firebase.firestore();
+      return true;
+    } catch (e) {
+      console.error("Firebase init hatası:", e);
+      db = null;
+      return false;
+    }
+  }
+
+  async function testAndSyncFirebase(config) {
+    const initialized = initFirebase(config);
+    if (!initialized) throw new Error("Firebase başlatılamadı.");
+
+    try {
+      // Test yazması yap
+      await db.collection('test_connection').doc('test').set({ timestamp: new Date().toISOString() });
+      saveFirebaseConfig(config);
+
+      // Verileri eşitle
+      await syncLocalToCloud();
+      await fetchCloudData();
+      return true;
+    } catch (e) {
+      console.error("Firebase test hatası:", e);
+      db = null;
+      throw new Error(e.message);
+    }
+  }
+
+  async function syncLocalToCloud() {
+    if (!db) return;
+    
+    // 1. Ciroları Yükle
+    const localRevenues = getAllData();
+    const batch = db.batch();
+    let batchCount = 0;
+    
+    for (const [dateKey, value] of Object.entries(localRevenues)) {
+      const docRef = db.collection('revenues').doc(dateKey);
+      batch.set(docRef, value, { merge: true });
+      batchCount++;
+      if (batchCount >= 400) {
+        await batch.commit();
+        batchCount = 0;
+      }
+    }
+    if (batchCount > 0) {
+      await batch.commit();
+    }
+
+    // 2. Hedefleri Yükle
+    const localTargets = getTargets();
+    await db.collection('config').doc('targets').set(localTargets, { merge: true });
+
+    // 3. Ayarları Yükle
+    const localSettings = getSettings();
+    await db.collection('config').doc('settings').set(localSettings, { merge: true });
+  }
+
+  async function fetchCloudData() {
+    if (!db) return;
+
+    // 1. Ciroları Çek
+    const querySnapshot = await db.collection('revenues').get();
+    const cloudRevenues = {};
+    querySnapshot.forEach(doc => {
+      cloudRevenues[doc.id] = doc.data();
+    });
+
+    const localRevenues = getAllData();
+    const mergedRevenues = { ...localRevenues, ...cloudRevenues };
+    saveAllData(mergedRevenues);
+
+    // 2. Hedefleri Çek
+    const targetsDoc = await db.collection('config').doc('targets').get();
+    if (targetsDoc.exists) {
+      const cloudTargets = targetsDoc.data();
+      const localTargets = getTargets();
+      const mergedTargets = { ...localTargets, ...cloudTargets };
+      // localstorage'a kaydet (db tetiklemesiz yerel kayıt)
+      localStorage.setItem(TARGETS_KEY, JSON.stringify(mergedTargets));
+    }
+
+    // 3. Ayarları Çek
+    const settingsDoc = await db.collection('config').doc('settings').get();
+    if (settingsDoc.exists) {
+      const cloudSettings = settingsDoc.data();
+      const localSettings = getSettings();
+      const mergedSettings = { ...localSettings, ...cloudSettings };
+      // localstorage'a kaydet (db tetiklemesiz yerel kayıt)
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(mergedSettings));
+    }
   }
 
   return {
@@ -318,6 +475,14 @@ const DataManager = (() => {
     exportJSON,
     importJSON,
     downloadCSV,
-    downloadJSON
+    downloadJSON,
+    getFirebaseConfig,
+    saveFirebaseConfig,
+    deleteFirebaseConfig,
+    initFirebase,
+    testAndSyncFirebase,
+    syncLocalToCloud,
+    fetchCloudData,
+    isFirebaseConnected: () => !!db
   };
 })();

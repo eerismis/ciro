@@ -30,6 +30,9 @@ const App = (() => {
 
     // Eksik sıcaklık derecelerini otomatik güncelle
     syncMissingWeather();
+
+    // Firebase başlat ve bulut verilerini senkronize et
+    initFirebaseAtLaunch();
   }
 
   // ─── Navigation ───
@@ -1264,6 +1267,9 @@ const App = (() => {
       fetchWeather(); // Konum değişmiş olabilir
     });
 
+    // ─── Firebase Eşitleme UI ───
+    setupFirebaseSettings();
+
     // ─── GEÇİCİ TABLO YÖNETİMİ (1 Ocak - 27 Nisan) ───
     const tempContainer = document.getElementById('tempBatchContainer');
     const tableBody = document.getElementById('tempBatchTableBody');
@@ -1710,6 +1716,101 @@ const App = (() => {
       toast.style.transition = 'all 0.3s ease';
       setTimeout(() => toast.remove(), 300);
     }, 3000);
+  }
+
+  // ─── Firebase Entegrasyonu Yardımcıları ───
+  function initFirebaseAtLaunch() {
+    const config = DataManager.getFirebaseConfig();
+    if (config) {
+      const initialized = DataManager.initFirebase(config);
+      if (initialized) {
+        console.log("Firebase initialized successfully at launch");
+        // Buluttan en güncel verileri çek ve ekranı yenile
+        DataManager.fetchCloudData()
+          .then(() => {
+            console.log("Cloud sync completed at launch");
+            refreshCurrentPage();
+          })
+          .catch(err => console.error("Cloud sync error at launch:", err));
+      }
+    }
+  }
+
+  function setupFirebaseSettings() {
+    const apiKeyInput = document.getElementById('fbApiKey');
+    const projectIdInput = document.getElementById('fbProjectId');
+    const appIdInput = document.getElementById('fbAppId');
+    const saveBtn = document.getElementById('btnSaveFirebase');
+    const disconnectBtn = document.getElementById('btnDisconnectFirebase');
+    const statusMsg = document.getElementById('fbStatusMessage');
+
+    const config = DataManager.getFirebaseConfig();
+    if (config) {
+      apiKeyInput.value = config.apiKey || '';
+      projectIdInput.value = config.projectId || '';
+      appIdInput.value = config.appId || '';
+      
+      if (DataManager.isFirebaseConnected()) {
+        statusMsg.textContent = '☁️ Bulut Eşitleme Aktif';
+        statusMsg.style.color = 'var(--color-success)';
+        disconnectBtn.style.display = 'block';
+        saveBtn.textContent = '💾 Bilgileri Güncelle';
+      } else {
+        statusMsg.textContent = '⚠️ Bağlantı Kurulamadı';
+        statusMsg.style.color = 'var(--color-danger)';
+        disconnectBtn.style.display = 'block';
+      }
+    }
+
+    saveBtn.addEventListener('click', async () => {
+      const apiKey = apiKeyInput.value.trim();
+      const projectId = projectIdInput.value.trim();
+      const appId = appIdInput.value.trim();
+
+      if (!apiKey || !projectId || !appId) {
+        showToast('Lütfen tüm alanları doldurun', 'warning');
+        return;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.textContent = '⏳ Bağlanıyor...';
+      statusMsg.textContent = 'Bağlantı kuruluyor ve veriler eşitleniyor...';
+      statusMsg.style.color = 'var(--text-muted)';
+
+      try {
+        await DataManager.testAndSyncFirebase({ apiKey, projectId, appId });
+        showToast('Firebase başarıyla bağlandı ve veriler eşitlendi! ✓', 'success');
+        statusMsg.textContent = '☁️ Bulut Eşitleme Aktif';
+        statusMsg.style.color = 'var(--color-success)';
+        disconnectBtn.style.display = 'block';
+        saveBtn.textContent = '💾 Bilgileri Güncelle';
+        refreshCurrentPage();
+      } catch (err) {
+        showToast('Bağlantı başarısız: ' + err.message, 'error');
+        statusMsg.textContent = '❌ Bağlantı Başarısız: ' + err.message;
+        statusMsg.style.color = 'var(--color-danger)';
+      } finally {
+        saveBtn.disabled = false;
+        if (!DataManager.isFirebaseConnected()) {
+          saveBtn.textContent = '💾 Bağlan & Eşitle';
+        }
+      }
+    });
+
+    disconnectBtn.addEventListener('click', () => {
+      if (confirm('Firebase bağlantısını kesmek istediğinize emin misiniz? (Yerel verileriniz silinmez)')) {
+        DataManager.deleteFirebaseConfig();
+        apiKeyInput.value = '';
+        projectIdInput.value = '';
+        appIdInput.value = '';
+        disconnectBtn.style.display = 'none';
+        saveBtn.textContent = '💾 Bağlan & Eşitle';
+        statusMsg.textContent = 'Bağlantı kesildi';
+        statusMsg.style.color = '';
+        showToast('Firebase bağlantısı kesildi', 'info');
+        refreshCurrentPage();
+      }
+    });
   }
 
   // ─── Public API ───
