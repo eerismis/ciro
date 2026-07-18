@@ -59,13 +59,13 @@ const DataManager = (() => {
       client.from('revenues').upsert({
         date: dateKey,
         revenue: entryData.revenue,
-        cashAmount: entryData.cashAmount,
-        cardAmount: entryData.cardAmount,
+        cashamount: entryData.cashAmount,
+        cardamount: entryData.cardAmount,
         notes: entryData.notes,
         weather: entryData.weather,
-        weatherIcon: entryData.weatherIcon,
-        weatherTemp: entryData.weatherTemp,
-        updatedAt: entryData.updatedAt
+        weathericon: entryData.weatherIcon,
+        weathertemp: entryData.weatherTemp,
+        updatedat: entryData.updatedAt
       }).catch(err => console.error("Supabase saveEntry error:", err));
     }
   }
@@ -323,9 +323,6 @@ const DataManager = (() => {
   /**
    * JSON dosyasını indir
    */
-  /**
-   * JSON dosyasını indir
-   */
   function downloadJSON() {
     const json = exportJSON();
     const blob = new Blob([json], { type: 'application/json' });
@@ -410,13 +407,13 @@ const DataManager = (() => {
       rows.push({
         date: dateKey,
         revenue: value.revenue,
-        cashAmount: value.cashAmount,
-        cardAmount: value.cardAmount,
+        cashamount: value.cashAmount,
+        cardamount: value.cardAmount,
         notes: value.notes,
         weather: value.weather,
-        weatherIcon: value.weatherIcon,
-        weatherTemp: value.weatherTemp,
-        updatedAt: value.updatedAt
+        weathericon: value.weatherIcon,
+        weathertemp: value.weatherTemp,
+        updatedat: value.updatedAt
       });
     }
 
@@ -446,15 +443,21 @@ const DataManager = (() => {
         const localRevenues = getAllData();
         const mergedRevenues = { ...localRevenues };
         cloudRevenues.forEach(row => {
+          const cash = row.cashamount !== undefined ? row.cashamount : (row.cashAmount !== undefined ? row.cashAmount : 0);
+          const card = row.cardamount !== undefined ? row.cardamount : (row.cardAmount !== undefined ? row.cardAmount : 0);
+          const wIcon = row.weathericon !== undefined ? row.weathericon : (row.weatherIcon !== undefined ? row.weatherIcon : '');
+          const wTemp = row.weathertemp !== undefined ? row.weathertemp : (row.weatherTemp !== undefined ? row.weatherTemp : null);
+          const updated = row.updatedat !== undefined ? row.updatedat : (row.updatedAt !== undefined ? row.updatedAt : new Date().toISOString());
+
           mergedRevenues[row.date] = {
             revenue: parseFloat(row.revenue) || 0,
-            cashAmount: parseFloat(row.cashAmount) || 0,
-            cardAmount: parseFloat(row.cardAmount) || 0,
+            cashAmount: parseFloat(cash) || 0,
+            cardAmount: parseFloat(card) || 0,
             notes: row.notes || '',
             weather: row.weather || '',
-            weatherIcon: row.weatherIcon || '',
-            weatherTemp: row.weatherTemp !== undefined ? row.weatherTemp : null,
-            updatedAt: row.updatedAt || new Date().toISOString()
+            weatherIcon: wIcon,
+            weatherTemp: wTemp !== null ? parseFloat(wTemp) : null,
+            updatedAt: updated
           };
         });
         saveAllData(mergedRevenues);
