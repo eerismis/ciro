@@ -279,35 +279,6 @@
           </div>
         </div>
 
-        <!-- Geçici Toplu Veri Girişi Tablosu -->
-        <div class="card" id="tempBatchContainer" style="margin-top: 24px;">
-          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-            <div class="card-title" style="margin-bottom:0;">📋 Geçici Toplu Giriş Tablosu (1 Ocak - 27 Nisan)</div>
-            <button class="btn btn-danger btn-sm" id="btnRemoveTempTable">Tabloyu Kaldır / Gizle</button>
-          </div>
-          <div class="form-hint" style="margin: 10px 0;">Bu tabloya girdiğiniz veriler tarayıcınıza anlık kaydedilir. İşiniz bittiğinde alttaki "Verileri Sisteme Yükle" butonuna basarak kalıcı hale getirebilirsiniz.</div>
-          
-          <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 16px;">
-            <table style="width:100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;" id="tempBatchTable">
-              <thead>
-                <tr style="background: var(--bg-input); border-bottom: 1px solid var(--border-color);">
-                  <th style="padding: 10px;">Tarih</th>
-                  <th style="padding: 10px; width: 150px;">Toplam Ciro (₺)</th>
-                  <th style="padding: 10px; width: 150px;">Kredi Kartı (₺)</th>
-                  <th style="padding: 10px; width: 150px;">Nakit (₺)</th>
-                </tr>
-              </thead>
-              <tbody id="tempBatchTableBody">
-                <!-- JS ile doldurulacak -->
-              </tbody>
-            </table>
-          </div>
-
-          <div style="display:flex; justify-content:space-between; align-items:center;">
-            <button class="btn btn-primary" id="btnSaveBatchData" style="flex:1; margin-right:10px;">💾 Verileri Sisteme Yükle (Kaydet)</button>
-            <button class="btn btn-secondary" id="btnClearBatchInputs">Kutuları Temizle</button>
-          </div>
-        </div>
       </section>
 
     </main>
