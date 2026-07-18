@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Dünya Spot - Günlük Ciro Takip ve Raporlama Sistemi">
+  <title>Dünya Spot | Ciro Takip</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- Mobile Menu Toggle -->
+  <button class="mobile-toggle" id="mobileToggle" aria-label="Menü">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+  </button>
+
+  <div class="app-container">
+
+    <!-- ═══ Sidebar ═══ -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-name">Dünya Spot</div>
+        <div class="brand-subtitle">Ciro Takip Sistemi</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-page="dashboard" id="navDashboard">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+          Dashboard
+        </div>
+        <div class="nav-item" data-page="calendar" id="navCalendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Takvim
+        </div>
+        <div class="nav-item" data-page="reports" id="navReports">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          Raporlar
+        </div>
+
+        <div class="nav-divider"></div>
+
+        <div class="nav-item" data-page="targets" id="navTargets">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+          Hedefler
+        </div>
+        <div class="nav-item" data-page="settings" id="navSettings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Ayarlar
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-weather" id="weatherWidget">
+          <div class="weather-location">Keşan, Edirne</div>
+          <div class="weather-main">
+            <span class="weather-icon">⏳</span>
+            <span class="weather-temp">--°C</span>
+          </div>
+          <div class="weather-desc">Yükleniyor...</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ═══ Main Content ═══ -->
+    <main class="main-content">
+
+      <!-- Toast Container -->
+      <div class="toast-container" id="toastContainer"></div>
+
+      <!-- ═══ Dashboard Page ═══ -->
+      <section class="page-section active" id="pageDashboard">
+        <div class="page-header">
+          <h1 class="page-title"><span class="page-title-icon">📊</span>Dashboard</h1>
+          <div class="header-actions">
+            <button class="btn btn-primary" id="btnNewEntry">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ciro Gir
+            </button>
+          </div>
+        </div>
+
+        <!-- Alerts -->
+        <div id="alertsContainer"></div>
+
+        <!-- Stats -->
+        <div class="stats-grid" id="dashboardStats"></div>
+
+        <!-- Target Progress -->
+        <div class="target-section" id="dashboardTargets"></div>
+
+        <!-- Charts Row -->
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-title">📊 Bu Hafta vs Geçen Hafta</div>
+            <div class="chart-container">
+              <canvas id="dashboardMiniChart"></canvas>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">💳 Ödeme Dağılımı (Bu Ay)</div>
+            <div class="chart-container">
+              <canvas id="dashboardPaymentChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sola Yaslı Son 30 Gün Listesi ve Sağa Yaslı Raporlar Grid'i -->
+        <div class="dashboard-bottom-grid">
+          <!-- Sol Kolon: Son 30 Gün -->
+          <div class="card">
+            <div class="card-title">📋 Son 30 Gün</div>
+            <ul class="recent-list" id="recentEntries"></ul>
+          </div>
+          
+          <!-- Sağ Kolon: Haftalık & Aylık Rapor Özetleri -->
+          <div class="card">
+            <div class="card-title">📊 Rapor Özetleri</div>
+            <div class="dashboard-reports-summary" id="dashboardReportsSummary">
+              <!-- JS ile dinamik doldurulacak -->
+              <div class="no-data">Yükleniyor...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══ Calendar Page ═══ -->
+      <section class="page-section" id="pageCalendar">
+        <div class="page-header">
+          <h1 class="page-title"><span class="page-title-icon">📅</span>Takvim</h1>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="btnCalToday">Bugün</button>
+            <button class="btn btn-primary" id="btnCalNewEntry">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Ciro Gir
+            </button>
+          </div>
+        </div>
+        <div class="card">
+          <div id="calendarContainer"></div>
+        </div>
+      </section>
+
+      <!-- ═══ Reports Page ═══ -->
+      <section class="page-section" id="pageReports">
+        <div class="page-header">
+          <h1 class="page-title"><span class="page-title-icon">📈</span>Raporlar</h1>
+          <div class="header-actions">
+            <button class="btn btn-secondary" id="btnExportCSV">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              CSV İndir
+            </button>
+          </div>
+        </div>
+
+        <div class="report-tabs" id="reportTabs">
+          <button class="report-tab active" data-period="daily">Günlük</button>
+          <button class="report-tab" data-period="weekly">Haftalık</button>
+          <button class="report-tab" data-period="monthly">Aylık</button>
+          <button class="report-tab" data-period="yearly">Yıllık</button>
+          <button class="report-tab" data-period="dayofweek">Gün Ortalaması</button>
+        </div>
+
+        <!-- Report Content -->
+        <div id="reportContent"></div>
+      </section>
+
+      <!-- ═══ Targets Page ═══ -->
+      <section class="page-section" id="pageTargets">
+        <div class="page-header">
+          <h1 class="page-title"><span class="page-title-icon">🎯</span>Hedef Yönetimi</h1>
+        </div>
+
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-title">Ciro Hedefleri</div>
+            <div class="form-group">
+              <label class="form-label" for="targetDaily">Günlük Hedef (₺)</label>
+              <input type="number" class="form-input" id="targetDaily" placeholder="Örn: 15000" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="targetWeekly">Haftalık Hedef (₺)</label>
+              <input type="number" class="form-input" id="targetWeekly" placeholder="Örn: 90000" min="0" step="100">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="targetMonthly">Aylık Hedef (₺)</label>
+              <input type="number" class="form-input" id="targetMonthly" placeholder="Örn: 350000" min="0" step="1000">
+            </div>
+            <button class="btn btn-primary" id="btnSaveTargets" style="width:100%">
+              💾 Hedefleri Kaydet
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">📊 Hedef Gerçekleşme</div>
+            <div id="targetProgress"></div>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top: 24px;">
+          <div class="card-title">🎯 Aylık Özel Hedefler (12 Ay)</div>
+          <div class="form-hint" style="margin-bottom: 16px;">Her ay için ayrı bir ciro hedefi belirleyebilirsiniz. Belirlemediğiniz aylar için yukarıdaki genel "Aylık Hedef" geçerli olacaktır.</div>
+          
+          <div class="monthly-targets-form-grid" id="monthlyTargetsInputsGrid" style="display:grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 20px;">
+            <!-- JS ile dinamik olarak 12 ayın girdi kutuları yerleştirilecek -->
+          </div>
+
+          <button class="btn btn-primary" id="btnSaveMonthlyByMonthTargets" style="max-width: 280px;">
+            💾 Aylık Özel Hedefleri Kaydet
+          </button>
+        </div>
+        </div>
+      </section>
+
+      <!-- ═══ Settings Page ═══ -->
+      <section class="page-section" id="pageSettings">
+        <div class="page-header">
+          <h1 class="page-title"><span class="page-title-icon">⚙️</span>Ayarlar</h1>
+        </div>
+
+        <div class="settings-grid">
+          <div class="card">
+            <div class="card-title">Mağaza Bilgileri</div>
+            <div class="form-group">
+              <label class="form-label" for="settingStoreName">Mağaza Adı</label>
+              <input type="text" class="form-input" id="settingStoreName" value="Dünya Spot">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="settingLocation">Konum (Hava Durumu)</label>
+              <input type="text" class="form-input" id="settingLocation" value="Keşan, Edirne">
+            </div>
+            <button class="btn btn-primary" id="btnSaveSettings" style="width:100%">
+              💾 Kaydet
+            </button>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Veri Yönetimi</div>
+            <div class="form-group">
+              <button class="btn btn-secondary" id="btnBackupJSON" style="width:100%; margin-bottom:10px">
+                📦 JSON Yedeği İndir
+              </button>
+              <button class="btn btn-secondary" id="btnExportCSVSettings" style="width:100%; margin-bottom:10px">
+                📊 CSV Olarak İndir
+              </button>
+              <label class="btn btn-secondary" style="width:100%; text-align:center; cursor:pointer; margin-bottom:10px">
+                📂 JSON Yedeğini Geri Yükle
+                <input type="file" id="btnRestoreJSON" accept=".json" style="display:none">
+              </label>
+              <div class="form-hint" style="text-align:center;">Toplam kayıt: <strong id="totalRecords">0</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Geçici Toplu Veri Girişi Tablosu -->
+        <div class="card" id="tempBatchContainer" style="margin-top: 24px;">
+          <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div class="card-title" style="margin-bottom:0;">📋 Geçici Toplu Giriş Tablosu (1 Ocak - 27 Nisan)</div>
+            <button class="btn btn-danger btn-sm" id="btnRemoveTempTable">Tabloyu Kaldır / Gizle</button>
+          </div>
+          <div class="form-hint" style="margin: 10px 0;">Bu tabloya girdiğiniz veriler tarayıcınıza anlık kaydedilir. İşiniz bittiğinde alttaki "Verileri Sisteme Yükle" butonuna basarak kalıcı hale getirebilirsiniz.</div>
+          
+          <div style="max-height: 450px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: var(--radius-md); margin-bottom: 16px;">
+            <table style="width:100%; border-collapse: collapse; text-align: left; font-size: 0.85rem;" id="tempBatchTable">
+              <thead>
+                <tr style="background: var(--bg-input); border-bottom: 1px solid var(--border-color);">
+                  <th style="padding: 10px;">Tarih</th>
+                  <th style="padding: 10px; width: 150px;">Toplam Ciro (₺)</th>
+                  <th style="padding: 10px; width: 150px;">Kredi Kartı (₺)</th>
+                  <th style="padding: 10px; width: 150px;">Nakit (₺)</th>
+                </tr>
+              </thead>
+              <tbody id="tempBatchTableBody">
+                <!-- JS ile doldurulacak -->
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <button class="btn btn-primary" id="btnSaveBatchData" style="flex:1; margin-right:10px;">💾 Verileri Sisteme Yükle (Kaydet)</button>
+            <button class="btn btn-secondary" id="btnClearBatchInputs">Kutuları Temizle</button>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- ═══ Entry Modal ═══ -->
+  <div class="modal-overlay" id="entryModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Ciro Girişi</h3>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+
+      <form id="entryForm">
+        <div class="form-group">
+          <label class="form-label" for="entryDate">Tarih</label>
+          <input type="date" class="form-input" id="entryDate" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="entryTotal">Toplam Ciro (₺)</label>
+          <input type="text" class="form-input" id="entryTotal" inputmode="numeric" placeholder="0" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="entryCard">Kredi Kartı (₺)</label>
+          <input type="text" class="form-input" id="entryCard" inputmode="numeric" placeholder="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Nakit</label>
+          <div class="stat-value cash" id="entryCashDisplay" style="font-size:1.3rem;">₺0</div>
+          <div class="form-hint">Nakit = Toplam Ciro − Kredi Kartı</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Hava Durumu</label>
+          <div class="weather-auto-display" id="weatherAutoDisplay">
+            <span class="auto-weather-info">🌐 Otomatik algılanacak</span>
+          </div>
+          <div class="form-hint">Hava durumu kayıt sırasında otomatik olarak internetten alınır.</div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="entryNotes">Notlar / Açıklama</label>
+          <textarea class="form-textarea" id="entryNotes" placeholder="Örn: Hava yağmurluydu, müşteri az geldi..."></textarea>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-danger" id="btnDeleteEntry" style="display:none">Sil</button>
+          <div style="flex:1"></div>
+          <button type="button" class="btn btn-secondary" id="modalCancel">İptal</button>
+          <button type="submit" class="btn btn-primary">💾 Kaydet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Scripts (order matters) -->
+  <script src="js/holidays.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/calendar.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
