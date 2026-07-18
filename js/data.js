@@ -419,18 +419,27 @@ const DataManager = (() => {
 
     if (rows.length > 0) {
       const { error } = await client.from('revenues').upsert(rows);
-      if (error) console.error("Supabase sync revenues error:", error);
+      if (error) {
+        console.error("Supabase sync revenues error:", error);
+        throw new Error("Ciro eşitleme hatası: " + error.message);
+      }
     }
 
     // 2. Hedefleri Yükle
     const localTargets = getTargets();
     const { error: tErr } = await client.from('key_value_store').upsert({ key: 'targets', value: localTargets });
-    if (tErr) console.error("Supabase sync targets error:", tErr);
+    if (tErr) {
+      console.error("Supabase sync targets error:", tErr);
+      throw new Error("Hedef eşitleme hatası: " + tErr.message);
+    }
 
     // 3. Ayarları Yükle
     const localSettings = getSettings();
     const { error: sErr } = await client.from('key_value_store').upsert({ key: 'settings', value: localSettings });
-    if (sErr) console.error("Supabase sync settings error:", sErr);
+    if (sErr) {
+      console.error("Supabase sync settings error:", sErr);
+      throw new Error("Ayar eşitleme hatası: " + sErr.message);
+    }
   }
 
   async function fetchCloudData() {
