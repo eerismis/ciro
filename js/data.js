@@ -44,13 +44,13 @@ const DataManager = (() => {
     const data = getAllData();
     const entryData = {
       revenue: parseFloat(entry.revenue) || 0,
-      cashAmount: parseFloat(entry.cashAmount) || 0,
-      cardAmount: parseFloat(entry.cardAmount) || 0,
+      cashAmount: parseFloat(entry.cashAmount !== undefined ? entry.cashAmount : entry.cashamount) || 0,
+      cardAmount: parseFloat(entry.cardAmount !== undefined ? entry.cardAmount : entry.cardamount) || 0,
       notes: entry.notes || '',
       weather: entry.weather || '',
-      weatherIcon: entry.weatherIcon || '',
-      weatherTemp: entry.weatherTemp !== undefined ? entry.weatherTemp : null,
-      updatedAt: new Date().toISOString()
+      weatherIcon: entry.weatherIcon !== undefined ? entry.weatherIcon : (entry.weathericon || ''),
+      weatherTemp: entry.weatherTemp !== undefined ? entry.weatherTemp : (entry.weathertemp !== undefined ? entry.weathertemp : null),
+      updatedAt: entry.updatedAt || entry.updatedat || new Date().toISOString()
     };
     data[dateKey] = entryData;
     saveAllData(data);
